@@ -55,6 +55,7 @@
     "framer-motion": "^12.38.0",
     "input-otp": "1.4.1",
     "lucide-react": "^0.454.0",
+    "mongodb": "^7.2.0",
     "mongoose": "latest",
     "next": "16.0.3",
     "next-auth": "latest",
