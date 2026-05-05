@@ -369,7 +369,7 @@ function MeetContent() {
       if (hasAudio && micEnabled) {
         try {
           microphoneTrack = await AgoraRTC.createMicrophoneAudioTrack({
-            echoCancellation: true,
+            echoCancellation: true, 
             noiseSuppression: true,
             autoGainControl: true,
             encoderConfig: {
