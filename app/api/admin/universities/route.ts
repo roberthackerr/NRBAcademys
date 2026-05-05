@@ -199,6 +199,6 @@ export async function POST(request: NextRequest) {
     if (error instanceof mongoose.Error.ValidationError) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
+    return NextResponse.json({ error: "Erreur serveur" ,m:error}, { status: 500 })
   }
 }

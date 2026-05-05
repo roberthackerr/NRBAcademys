@@ -191,7 +191,7 @@ export function Navbar({ isAuthenticated: propIsAuthenticated, user: propUser }:
             </motion.div>
             <div className="hidden sm:block">
               <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
-                NRBAcademy
+                NEXUS
               </h1>
               <p className="text-xs text-cyan-400/70">Élevez votre apprentissage</p>
             </div>
