@@ -1,7 +1,7 @@
 // app/meet/page.tsx
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { 
   Video, 
@@ -32,7 +32,8 @@ import {
 import Link from 'next/link'
 import { Navbar } from '@/components/nav'
 
-export default function AgoraVideoMeetPage() {
+// Composant séparé pour utiliser useSearchParams
+function MeetContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   
@@ -97,6 +98,7 @@ export default function AgoraVideoMeetPage() {
     checkDevicesAndPermissions()
   }, [])
 
+  // Reste du code identique (toutes les fonctions)
   const checkDevicesAndPermissions = async () => {
     try {
       if (navigator.permissions) {
@@ -597,6 +599,7 @@ export default function AgoraVideoMeetPage() {
     router.push(`/meet?room=${newRoom}`)
   }
 
+  // Rendu JSX (identique)
   return (
     <div ref={containerRef} className="min-h-screen bg-gradient-to-br from-[#0a0a2e] via-[#0d0d35] to-[#0a0a2e]">
       <Navbar />
@@ -935,5 +938,28 @@ export default function AgoraVideoMeetPage() {
         )}
       </div>
     </div>
+  )
+}
+
+// Export principal avec Suspense
+export default function AgoraVideoMeetPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-[#0a0a2e] via-[#0d0d35] to-[#0a0a2e] flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative">
+            <div className="w-16 h-16 rounded-full border-2 border-cyan-500/30 animate-pulse"></div>
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+              <div className="w-8 h-8 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          </div>
+          <p className="text-cyan-400/80 mt-4 font-mono text-sm tracking-wider">
+            CHARGEMENT...
+          </p>
+        </div>
+      </div>
+    }>
+      <MeetContent />
+    </Suspense>
   )
 }
