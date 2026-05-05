@@ -44,6 +44,8 @@
     "@tiptap/react": "^3.22.4",
     "@tiptap/starter-kit": "^3.22.4",
     "@vercel/analytics": "latest",
+    "agora-rtc-sdk-ng": "^4.24.3",
+    "agora-token": "^2.0.5",
     "autoprefixer": "^10.4.20",
     "bcryptjs": "latest",
     "chart.js": "^4.5.1",

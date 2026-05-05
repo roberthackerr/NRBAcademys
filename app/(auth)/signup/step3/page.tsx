@@ -1,4 +1,4 @@
-// app/signup/step3/page.tsx - Step 3/3 (Confirmation & Profile Completion)
+// app/signup/step3/page.tsx
 "use client"
 
 import { useEffect, useState } from "react"
@@ -29,9 +29,12 @@ export default function SignupStep3() {
       return
     }
 
-    const storedData = sessionStorage.getItem("signupData")
-    if (storedData) {
-      setUserData(JSON.parse(storedData))
+    // ✅ Vérifier si on est côté client avant d'utiliser sessionStorage
+    if (typeof window !== 'undefined') {
+      const storedData = sessionStorage.getItem("signupData")
+      if (storedData) {
+        setUserData(JSON.parse(storedData))
+      }
     }
     
     // Auto-redirect countdown
@@ -160,7 +163,7 @@ export default function SignupStep3() {
                 </p>
               </motion.div>
 
-              {/* User Summary */}
+              {/* User Summary - with fallback values */}
               {userData && (
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
@@ -175,19 +178,19 @@ export default function SignupStep3() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="p-3 rounded-xl bg-cyan-950/20 border border-cyan-500/20">
                       <span className="text-xs text-cyan-400/70">NOM COMPLET</span>
-                      <p className="font-medium text-cyan-100 mt-1">{userData.name || "Non renseigné"}</p>
+                      <p className="font-medium text-cyan-100 mt-1">{userData?.name || "Non renseigné"}</p>
                     </div>
                     <div className="p-3 rounded-xl bg-cyan-950/20 border border-cyan-500/20">
                       <span className="text-xs text-cyan-400/70">EMAIL</span>
-                      <p className="font-medium text-cyan-100 mt-1">{userData.email || "Non renseigné"}</p>
+                      <p className="font-medium text-cyan-100 mt-1">{userData?.email || "Non renseigné"}</p>
                     </div>
                     <div className="p-3 rounded-xl bg-cyan-950/20 border border-cyan-500/20">
                       <span className="text-xs text-cyan-400/70">STATUT</span>
-                      <p className="font-medium text-cyan-100 mt-1 capitalize">{userData.role || "Étudiant"}</p>
+                      <p className="font-medium text-cyan-100 mt-1 capitalize">{userData?.role || "Étudiant"}</p>
                     </div>
                     <div className="p-3 rounded-xl bg-cyan-950/20 border border-cyan-500/20">
                       <span className="text-xs text-cyan-400/70">LOCALISATION</span>
-                      <p className="font-medium text-cyan-100 mt-1">{userData.city || userData.country || "Non renseignée"}</p>
+                      <p className="font-medium text-cyan-100 mt-1">{userData?.city || userData?.country || "Non renseignée"}</p>
                     </div>
                   </div>
                 </motion.div>
