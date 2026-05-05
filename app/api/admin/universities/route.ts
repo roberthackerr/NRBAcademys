@@ -1,4 +1,4 @@
-// app/api/admin/universities/route.ts - GET (liste) & POST (création)
+// app/api/admin/universities/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
@@ -7,15 +7,34 @@ import University from "@/models/University"
 import User from "@/models/User"
 import UniversityAdmin from "@/models/UniversityAdmin"
 import mongoose from "mongoose"
+import { writeFile, mkdir } from "fs/promises"
+import path from "path"
+import { existsSync } from "fs"
 
-// Vérifier si l'utilisateur est admin global
 async function isGlobalAdmin(session: any): Promise<boolean> {
   if (!session) return false
   const user = await User.findById((session.user as any).id)
   return user?.role === "global_admin"
 }
 
-// GET - Récupérer toutes les universités (avec filtres)
+// Helper pour parser FormData
+async function parseFormData(request: NextRequest) {
+  const formData = await request.formData()
+  const data: any = {}
+  
+  for (const [key, value] of formData.entries()) {
+    // Gérer les checkbox (qui viennent comme "true"/"false" strings)
+    if (key === "assignCurrentUserAsAdmin") {
+      data[key] = value === "true"
+    } else {
+      data[key] = value
+    }
+  }
+  
+  return { formData, data }
+}
+
+// GET - Récupérer toutes les universités
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -23,7 +42,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
     }
 
-    // Vérifier les droits (admin global ou admin université)
     const isGlobal = await isGlobalAdmin(session)
     const userId = (session.user as any).id
 
@@ -38,17 +56,14 @@ export async function GET(request: NextRequest) {
 
     const query: any = {}
 
-    // Filtrage par statut
     if (status && status !== "all") {
       query.status = status
     }
 
-    // Filtrage par continent
     if (continent && continent !== "all") {
       query.continent = continent
     }
 
-    // Recherche textuelle
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: "i" } },
@@ -58,7 +73,6 @@ export async function GET(request: NextRequest) {
       ]
     }
 
-    // Si c'est un admin université (pas global), filtrer par ses universités
     if (!isGlobal) {
       const userAdmins = await UniversityAdmin.find({ 
         user: userId, 
@@ -79,7 +93,6 @@ export async function GET(request: NextRequest) {
       University.countDocuments(query)
     ])
 
-    // Compter les stats supplémentaires
     const universitiesWithStats = await Promise.all(
       universities.map(async (uni) => {
         const adminCount = await UniversityAdmin.countDocuments({ 
@@ -94,7 +107,6 @@ export async function GET(request: NextRequest) {
       })
     )
 
-    // Statistiques globales
     const stats = {
       total: await University.countDocuments(),
       active: await University.countDocuments({ status: "active" }),
@@ -124,7 +136,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Créer une nouvelle université
+// POST - Créer une nouvelle université (avec FormData)
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -134,51 +146,74 @@ export async function POST(request: NextRequest) {
 
     await connectToDatabase()
 
-    const formData = await request.formData()
+    // ✅ Parser le FormData
+    const { formData, data } = await parseFormData(request)
     
-    const universityData = {
-      name: formData.get("name") as string,
-      name_en: formData.get("name_en") as string,
-      location: formData.get("location") as string,
-      country: formData.get("country") as string,
-      continent: formData.get("continent") as string,
-      website: formData.get("website") as string,
-      email: formData.get("email") as string,
-      phone: formData.get("phone") as string,
-      description: formData.get("description") as string,
-      address: formData.get("address") as string,
-      postalCode: formData.get("postalCode") as string,
-      status: "pending",
-    }
+    console.log("📥 Données reçues:", data)
 
+    // Récupérer le fichier logo
+    const logoFile = formData.get("logo") as File
+    
     // Validation
-    if (!universityData.name || !universityData.location || !universityData.country || !universityData.email) {
-      return NextResponse.json({ error: "Champs obligatoires manquants" }, { status: 400 })
+    if (!data.name || !data.name.trim()) {
+      return NextResponse.json({ error: "Le nom de l'université est requis" }, { status: 400 })
+    }
+    if (!data.location || !data.location.trim()) {
+      return NextResponse.json({ error: "La localisation est requise" }, { status: 400 })
+    }
+    if (!data.country || !data.country.trim()) {
+      return NextResponse.json({ error: "Le pays est requis" }, { status: 400 })
+    }
+    if (!data.email || !data.email.trim()) {
+      return NextResponse.json({ error: "L'email est requis" }, { status: 400 })
     }
 
     // Vérifier si l'université existe déjà
-    const existing = await University.findOne({ name: universityData.name })
+    const existing = await University.findOne({ name: data.name })
     if (existing) {
       return NextResponse.json({ error: "Cette université existe déjà" }, { status: 400 })
     }
 
     // Gérer l'upload du logo
     let logoUrl = null
-    const logoFile = formData.get("logo") as File
     if (logoFile && logoFile.size > 0) {
-      // Ici, vous pouvez uploader vers un service comme Cloudinary, AWS S3, etc.
-      // Pour l'exemple, on simule
-      logoUrl = `/uploads/${Date.now()}_${logoFile.name}`
-      // TODO: Implémenter l'upload réel
+      const uploadDir = path.join(process.cwd(), "public", "uploads", "universities")
+      if (!existsSync(uploadDir)) {
+        await mkdir(uploadDir, { recursive: true })
+      }
+      
+      const bytes = await logoFile.arrayBuffer()
+      const buffer = Buffer.from(bytes)
+      
+      const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(logoFile.name)}`
+      const filePath = path.join(uploadDir, uniqueName)
+      
+      await writeFile(filePath, buffer)
+      logoUrl = `/uploads/universities/${uniqueName}`
     }
 
-    const newUniversity = await University.create({
-      ...universityData,
+    const universityData = {
+      name: data.name,
+      name_en: data.name_en || "",
+      location: data.location,
+      country: data.country,
+      continent: data.continent,
+      website: data.website || "",
+      email: data.email,
+      phone: data.phone || "",
+      description: data.description || "",
+      address: data.address || "",
+      postalCode: data.postalCode || "",
       logo: logoUrl,
-    })
+      status: "pending",
+      studentsCount: 0,
+      programsCount: 0,
+    }
 
-    // Créer automatiquement un admin super_admin pour le créateur?
-    if (formData.get("assignCurrentUserAsAdmin") === "true") {
+    const newUniversity = await University.create(universityData)
+
+    // Créer automatiquement un admin pour le créateur
+    if (data.assignCurrentUserAsAdmin === true) {
       const userId = (session.user as any).id
       await UniversityAdmin.create({
         user: userId,
@@ -190,15 +225,29 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    console.log("✅ Université créée:", newUniversity.name)
+
     return NextResponse.json(
-      { message: "Université créée avec succès", university: newUniversity },
+      { 
+        success: true,
+        message: "Université créée avec succès", 
+        university: {
+          ...newUniversity.toObject(),
+          _id: newUniversity._id.toString()
+        }
+      },
       { status: 201 }
     )
-  } catch (error) {
-    console.error("Error creating university:", error)
+  } catch (error: any) {
+    console.error("❌ Error creating university:", error)
+    
     if (error instanceof mongoose.Error.ValidationError) {
       return NextResponse.json({ error: error.message }, { status: 400 })
     }
-    return NextResponse.json({ error: "Erreur serveur" ,m:error}, { status: 500 })
+    
+    return NextResponse.json({ 
+      error: "Erreur serveur", 
+      details: error.message 
+    }, { status: 500 })
   }
 }
