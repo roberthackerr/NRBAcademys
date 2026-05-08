@@ -24,7 +24,12 @@ import {
   Network,
   Radio,
   Zap,
-  Crown
+  Crown,
+  Building2,
+  Newspaper,
+  Calendar,
+  FileText,
+  Map
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -47,7 +52,7 @@ interface NavbarProps {
     name: string
     avatar?: string
     unreadMessages?: number
-    role?: "student" | "instructor" | "admin"
+    role?: "student" | "instructor" | "admin" | "global_admin"
   }
 }
 
@@ -58,8 +63,9 @@ export function Navbar({ isAuthenticated: propIsAuthenticated, user: propUser }:
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   
-  // ✅ Vérifier si on est sur une page d'auth (cacher la navbar)
-  const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/signup/step2' || pathname === '/signup/step3'
+  // Pages où la navbar ne doit pas s'afficher
+  const hiddenPages = ['/login', '/signup', '/signup/step2', '/signup/step3', '/meet']
+  const isHiddenPage = hiddenPages.includes(pathname)
   
   // Effet pour le scroll
   useEffect(() => {
@@ -78,6 +84,7 @@ export function Navbar({ isAuthenticated: propIsAuthenticated, user: propUser }:
     avatar: sessionUser.image,
     role: sessionUser.role,
     email: sessionUser.email,
+    id: sessionUser.id,
     unreadMessages: 3
   } : null)
   
@@ -86,19 +93,31 @@ export function Navbar({ isAuthenticated: propIsAuthenticated, user: propUser }:
 
   useEffect(() => {
     if (isAuthenticated && currentUser?.id) {
-      setUnreadMessages(3)
+      // Récupérer le vrai nombre de messages non lus
+      const fetchUnreadCount = async () => {
+        try {
+          const res = await fetch(`/api/messages/unread`)
+          if (res.ok) {
+            const data = await res.json()
+            setUnreadMessages(data.count)
+          }
+        } catch (error) {
+          console.error("Error fetching unread count:", error)
+        }
+      }
+      fetchUnreadCount()
     }
   }, [isAuthenticated, currentUser?.id])
 
-  // ✅ Si on est sur une page d'auth, ne pas afficher la navbar
-  if (isAuthPage) {
+  // ✅ Si on est sur une page cachée, ne pas afficher la navbar
+  if (isHiddenPage) {
     return null
   }
 
   const navLinks = [
     { href: "/", label: "Accueil", icon: <Home className="h-4 w-4" /> },
     { href: "/courses", label: "Cours", icon: <BookOpen className="h-4 w-4" /> },
-    { href: "/dashboard", label: "Tableau de bord", icon: <LayoutDashboard className="h-4 w-4" /> },
+    { href: "/universities", label: "Universités", icon: <Building2 className="h-4 w-4" /> },
     { href: "/community", label: "Communauté", icon: <Users className="h-4 w-4" /> },
   ]
 
@@ -110,28 +129,43 @@ export function Navbar({ isAuthenticated: propIsAuthenticated, user: propUser }:
         return [
           { href: "/teacher", label: "Tableau de bord", icon: <LayoutDashboard className="h-4 w-4" /> },
           { href: "/teacher/courses", label: "Mes cours", icon: <BookOpen className="h-4 w-4" /> },
-          { href: "/teacher/assignments", label: "Devoirs", icon: <Award className="h-4 w-4" /> },
+          { href: "/universities/map", label: "Map", icon: <Map className="h-4"/> },
+          { href: "/teacher/assignments", label: "Devoirs", icon: <FileText className="h-4 w-4" /> },
           { href: "/teacher/submissions", label: "Soumissions", icon: <Users className="h-4 w-4" /> },
         ]
       case "admin":
         return [
           { href: "/admin/dashboard", label: "Administration", icon: <LayoutDashboard className="h-4 w-4" /> },
           { href: "/admin/users", label: "Utilisateurs", icon: <Users className="h-4 w-4" /> },
+            { href: "/universities/map", label: "Map", icon: <Map className="h-4"/> },
           { href: "/admin/courses", label: "Gestion des cours", icon: <BookOpen className="h-4 w-4" /> },
-          { href: "/admin/universities", label: "Universités", icon: <GraduationCap className="h-4 w-4" /> },
+          { href: "/admin/universities", label: "Universités", icon: <Building2 className="h-4 w-4" /> },
+        ]
+      case "global_admin":
+        return [
+          { href: "/admin/dashboard", label: "Administration", icon: <LayoutDashboard className="h-4 w-4" /> },
+          { href: "/admin/users", label: "Utilisateurs", icon: <Users className="h-4 w-4" /> },
+            { href: "/universities/map", label: "Map", icon: <Map className="h-4"/> },
+          { href: "/admin/universities", label: "Universités", icon: <Building2 className="h-4 w-4" /> },
+          { href: "/admin/analytics", label: "Analytiques", icon: <Award className="h-4 w-4" /> },
         ]
       default:
         return [
           { href: "/student", label: "Tableau de bord", icon: <LayoutDashboard className="h-4 w-4" /> },
           { href: "/student/courses", label: "Mes cours", icon: <BookOpen className="h-4 w-4" /> },
           { href: "/student/progress", label: "Ma progression", icon: <Award className="h-4 w-4" /> },
-          { href: "/student/assignments", label: "Devoirs", icon: <Award className="h-4 w-4" /> },
+          { href: "/student/assignments", label: "Devoirs", icon: <FileText className="h-4 w-4" /> },
+          { href: "/dashboard/university", label: "Mon université", icon: <Building2 className="h-4 w-4" /> },
         ]
     }
   }
 
   const roleBasedLinks = getRoleBasedLinks()
-  const isActive = (path: string) => pathname === path
+  
+  const isActive = (path: string) => {
+    if (path === "/") return pathname === path
+    return pathname.startsWith(path)
+  }
 
   const handleLogout = async () => {
     await signOut({ redirect: true, callbackUrl: "/" })
@@ -150,6 +184,7 @@ export function Navbar({ isAuthenticated: propIsAuthenticated, user: propUser }:
     switch (role) {
       case "instructor": return "Enseignant"
       case "admin": return "Administrateur"
+      case "global_admin": return "Admin Global"
       default: return "Étudiant"
     }
   }
@@ -236,7 +271,7 @@ export function Navbar({ isAuthenticated: propIsAuthenticated, user: propUser }:
                         variant="destructive" 
                         className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs animate-pulse bg-gradient-to-r from-cyan-500 to-violet-500"
                       >
-                        {unreadMessages}
+                        {unreadMessages > 9 ? '9+' : unreadMessages}
                       </Badge>
                     )}
                   </Button>
@@ -267,13 +302,21 @@ export function Navbar({ isAuthenticated: propIsAuthenticated, user: propUser }:
                       <ChevronDown className="h-4 w-4 text-cyan-400/70" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-64 bg-[#0d0d35] border border-cyan-500/30">
+                  <DropdownMenuContent align="end" className="w-72 bg-[#0d0d35] border border-cyan-500/30">
                     <DropdownMenuLabel>
-                      <div className="flex flex-col">
-                        <span className="font-medium text-white">{currentUser?.name}</span>
-                        <span className="text-xs text-cyan-400/70">
-                          {getRoleLabel(currentUser?.role)} · {currentUser?.email}
-                        </span>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={currentUser?.avatar} />
+                          <AvatarFallback className="bg-gradient-to-br from-cyan-500 to-violet-600 text-white">
+                            {getInitials(currentUser?.name || "U")}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <span className="font-medium text-white">{currentUser?.name}</span>
+                          <span className="text-xs text-cyan-400/70">
+                            {getRoleLabel(currentUser?.role)} · {currentUser?.email}
+                          </span>
+                        </div>
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator className="bg-cyan-500/30" />
@@ -281,7 +324,7 @@ export function Navbar({ isAuthenticated: propIsAuthenticated, user: propUser }:
                     {/* Liens spécifiques au rôle */}
                     {roleBasedLinks.map((link) => (
                       <DropdownMenuItem key={link.href} asChild>
-                        <Link href={link.href} className="cursor-pointer flex items-center gap-2 text-slate-300 hover:text-cyan-400 hover:bg-cyan-500/10">
+                        <Link href={link.href} className="cursor-pointer flex items-center gap-2 text-slate-300 hover:text-cyan-400 hover:bg-cyan-500/10 py-2">
                           {link.icon}
                           {link.label}
                         </Link>
@@ -291,13 +334,13 @@ export function Navbar({ isAuthenticated: propIsAuthenticated, user: propUser }:
                     <DropdownMenuSeparator className="bg-cyan-500/30" />
                     
                     <DropdownMenuItem asChild>
-                      <Link href="/profile" className="cursor-pointer flex items-center gap-2 text-slate-300 hover:text-cyan-400 hover:bg-cyan-500/10">
+                      <Link href="/profile" className="cursor-pointer flex items-center gap-2 text-slate-300 hover:text-cyan-400 hover:bg-cyan-500/10 py-2">
                         <User className="h-4 w-4" />
                         Mon profil
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/settings" className="cursor-pointer flex items-center gap-2 text-slate-300 hover:text-cyan-400 hover:bg-cyan-500/10">
+                      <Link href="/settings" className="cursor-pointer flex items-center gap-2 text-slate-300 hover:text-cyan-400 hover:bg-cyan-500/10 py-2">
                         <Settings className="h-4 w-4" />
                         Paramètres
                       </Link>
@@ -307,7 +350,7 @@ export function Navbar({ isAuthenticated: propIsAuthenticated, user: propUser }:
                     
                     <DropdownMenuItem 
                       onClick={handleLogout}
-                      className="text-rose-400 cursor-pointer flex items-center gap-2 hover:bg-rose-500/10"
+                      className="text-rose-400 cursor-pointer flex items-center gap-2 hover:bg-rose-500/10 py-2"
                     >
                       <LogOut className="h-4 w-4" />
                       Déconnexion
@@ -387,6 +430,23 @@ export function Navbar({ isAuthenticated: propIsAuthenticated, user: propUser }:
                   </Link>
                 ))}
               </div>
+              
+              {/* Actions sur mobile */}
+              {!isAuthenticated && (
+                <div className="pt-4 space-y-2">
+                  <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                    <Button className="w-full border-cyan-500/30 text-cyan-400">
+                      Connexion
+                    </Button>
+                  </Link>
+                  <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>
+                    <Button className="w-full bg-gradient-to-r from-cyan-500 to-violet-600 text-white">
+                      Commencer
+                      <Sparkles className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

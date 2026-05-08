@@ -16,10 +16,10 @@ import {
   TrendingUp, Star, Compass, Cloud, Database, Radio
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { toast } from "sonner"
 
 interface University {
   _id: string
-  id: string
   name: string
   name_en: string
   location: string
@@ -27,30 +27,22 @@ interface University {
   continent: string
   website: string
   logo?: string
-  stats?: {
-    schoolsCount: number
-    mentionsCount: number
-    filieresCount: number
-  }
 }
 
 interface School {
   _id: string
-  id: string
   name: string
   description?: string
 }
 
 interface Mention {
   _id: string
-  id: string
   name: string
   description?: string
 }
 
 interface Filiere {
   _id: string
-  id: string
   name: string
   description?: string
   duration: string
@@ -58,7 +50,14 @@ interface Filiere {
   level: string
 }
 
-const niveaux = ["Licence 1", "Licence 2", "Licence 3", "Master 1", "Master 2", "Doctorat"]
+const niveaux = [
+  { value: "L1", label: "Licence 1" },
+  { value: "L2", label: "Licence 2" },
+  { value: "L3", label: "Licence 3" },
+  { value: "M1", label: "Master 1" },
+  { value: "M2", label: "Master 2" },
+  { value: "Doctorat", label: "Doctorat" }
+]
 
 export default function SignupStep2() {
   const router = useRouter()
@@ -79,17 +78,17 @@ export default function SignupStep2() {
   const [availableMentions, setAvailableMentions] = useState<Mention[]>([])
   const [availableFilieres, setAvailableFilieres] = useState<Filiere[]>([])
 
-  // Fetch universities
+  // ✅ Récupérer les universités
   const fetchUniversities = useCallback(async () => {
     setFetchingData(true)
     try {
       const response = await fetch('/api/academic-data?type=universities')
       if (!response.ok) throw new Error('Failed to fetch universities')
-      
       const data = await response.json()
       setUniversities(data.data || [])
     } catch (error) {
       console.error('Error fetching universities:', error)
+      toast.error("Erreur lors du chargement des universités")
     } finally {
       setFetchingData(false)
     }
@@ -99,7 +98,7 @@ export default function SignupStep2() {
     fetchUniversities()
   }, [fetchUniversities])
 
-  // Check step 1 data
+  // ✅ Vérifier les données de l'étape 1
   useEffect(() => {
     const signupData = sessionStorage.getItem("signupData")
     if (!signupData) {
@@ -107,7 +106,7 @@ export default function SignupStep2() {
     }
   }, [router])
 
-  // Fetch schools
+  // ✅ Récupérer les écoles
   useEffect(() => {
     if (selectedUniversity) {
       const fetchSchools = async () => {
@@ -119,6 +118,7 @@ export default function SignupStep2() {
           }
         } catch (error) {
           console.error('Error fetching schools:', error)
+          toast.error("Erreur lors du chargement des écoles")
         }
       }
       fetchSchools()
@@ -132,7 +132,7 @@ export default function SignupStep2() {
     }
   }, [selectedUniversity, universities])
 
-  // Fetch mentions
+  // ✅ Récupérer les mentions
   useEffect(() => {
     if (selectedSchool) {
       const fetchMentions = async () => {
@@ -152,7 +152,7 @@ export default function SignupStep2() {
     }
   }, [selectedSchool])
 
-  // Fetch filieres
+  // ✅ Récupérer les filières
   useEffect(() => {
     if (selectedMention) {
       const fetchFilieres = async () => {
@@ -171,7 +171,7 @@ export default function SignupStep2() {
     }
   }, [selectedMention])
 
-  // Filtered universities
+  // ✅ Filtrer les universités
   const filteredUniversities = universities.filter(uni => {
     const matchesSearch = uni.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (uni.name_en || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -182,10 +182,12 @@ export default function SignupStep2() {
 
   const continents = ["all", ...new Set(universities.map(uni => uni.continent).filter(Boolean))]
 
+  // ✅ Soumission du formulaire
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!selectedUniversity || !selectedSchool || !selectedLevel || !selectedMention || !selectedFiliere) {
+      toast.error("Veuillez remplir tous les champs")
       return
     }
 
@@ -198,25 +200,26 @@ export default function SignupStep2() {
       const selectedMentionData = availableMentions.find(m => m._id === selectedMention)
       const selectedSchoolData = availableSchools.find(s => s._id === selectedSchool)
       
+      // ✅ Structure des données pour l'API
       const completeData = {
         ...signupData,
-        university: {
-          id: selectedUniversity,
-          name: selectedUniversityDetails?.name,
-          location: selectedUniversityDetails?.location,
-          country: selectedUniversityDetails?.country,
-        },
-        school: selectedSchool,
-        schoolName: selectedSchoolData?.name,
+        // ✅ IDs MongoDB complets (ObjectId)
+        university: selectedUniversity,  // Envoyer directement l'ID
+        school: selectedSchool,          // Envoyer directement l'ID
+        mention: selectedMention,        // Envoyer directement l'ID
+        filiere: selectedFiliere,        // Envoyer directement l'ID
         level: selectedLevel,
-        mention: selectedMention,
+        // Informations textuelles pour référence
+        universityName: selectedUniversityDetails?.name,
+        schoolName: selectedSchoolData?.name,
         mentionName: selectedMentionData?.name,
-        filiere: selectedFiliere,
         filiereName: selectedFiliereData?.name,
         filiereDuration: selectedFiliereData?.duration,
         filiereCredits: selectedFiliereData?.credits,
         registrationDate: new Date().toISOString(),
       }
+
+      console.log("📤 Envoi des données:", completeData)
 
       const res = await fetch("/api/auth/register", {
         method: "POST",
@@ -224,16 +227,18 @@ export default function SignupStep2() {
         body: JSON.stringify(completeData),
       })
 
+      const data = await res.json()
+
       if (!res.ok) {
-        const data = await res.json()
-        alert(data.error || "Erreur lors de l'inscription")
-        return
+        throw new Error(data.error || "Erreur lors de l'inscription")
       }
 
       sessionStorage.removeItem("signupData")
+      toast.success("Inscription réussie !")
       router.push("/signup/step3?success=true")
-    } catch (err) {
-      alert("Une erreur est survenue. Veuillez réessayer.")
+    } catch (err: any) {
+      console.error("Erreur:", err)
+      toast.error(err.message || "Une erreur est survenue")
     } finally {
       setLoading(false)
     }
@@ -275,8 +280,8 @@ export default function SignupStep2() {
       {/* Floating Nodes */}
       <div className="absolute top-40 right-20 w-2 h-2 bg-cyan-400 rounded-full shadow-lg shadow-cyan-400/50 animate-ping"></div>
       <div className="absolute bottom-40 left-20 w-2 h-2 bg-violet-400 rounded-full shadow-lg shadow-violet-400/50 animate-pulse delay-700"></div>
-      <div className="absolute top-60 left-1/3 w-1 h-1 bg-cyan-300 rounded-full shadow-lg shadow-cyan-300/50"></div>
-      <div className="absolute bottom-60 right-1/3 w-1 h-1 bg-violet-300 rounded-full shadow-lg shadow-violet-300/50"></div>
+      <div className="absolute top-60 left-1/3 w-1 h-1 bg-cyan-300 rounded-full"></div>
+      <div className="absolute bottom-60 right-1/3 w-1 h-1 bg-violet-300 rounded-full"></div>
 
       <div className="max-w-4xl mx-auto relative z-10 px-4 py-8">
         <motion.div
@@ -284,15 +289,13 @@ export default function SignupStep2() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
-          {/* Glass Navigation Card */}
           <div className="backdrop-blur-xl bg-white/5 border border-cyan-500/20 rounded-2xl shadow-2xl overflow-hidden">
-            {/* Header with Progress */}
+            {/* Header */}
             <div className="p-6 border-b border-cyan-500/20">
               <div className="flex justify-between items-center mb-4">
                 <motion.div 
                   className="flex items-center gap-3"
                   whileHover={{ scale: 1.02 }}
-                  transition={{ type: "spring", stiffness: 400 }}
                 >
                   <div className="relative">
                     <div className="absolute inset-0 bg-cyan-400 rounded-xl blur-lg opacity-50"></div>
@@ -325,7 +328,7 @@ export default function SignupStep2() {
 
             <div className="p-6">
               <form onSubmit={handleSubmit} className="space-y-6">
-                {/* University Selection Section */}
+                {/* University Selection */}
                 <div className="space-y-3">
                   <Label className="text-xs font-mono text-cyan-400 tracking-wider flex items-center gap-2">
                     <Globe className="h-3 w-3" />
@@ -454,9 +457,9 @@ export default function SignupStep2() {
                           <SelectValue placeholder="Sélectionner le niveau" />
                         </SelectTrigger>
                         <SelectContent className="bg-[#0d0d35] border-cyan-500/30">
-                          {niveaux.map((level) => (
-                            <SelectItem key={level} value={level} className="text-cyan-100 hover:bg-cyan-500/20">
-                              {level}
+                          {niveaux.map((niveau) => (
+                            <SelectItem key={niveau.value} value={niveau.value} className="text-cyan-100 hover:bg-cyan-500/20">
+                              {niveau.label}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -542,7 +545,8 @@ export default function SignupStep2() {
                           </span>
                         </p>
                         <p className="text-xs text-cyan-400/60 mt-1">
-                          {availableMentions.find(m => m._id === selectedMention)?.name}
+                          Mention: {availableMentions.find(m => m._id === selectedMention)?.name}
+                          {selectedLevel && ` • Niveau: ${niveaux.find(n => n.value === selectedLevel)?.label}`}
                         </p>
                       </div>
                     </motion.div>
@@ -581,7 +585,7 @@ export default function SignupStep2() {
               </form>
             </div>
 
-            {/* Footer with network stats */}
+            {/* Footer */}
             <div className="p-4 border-t border-cyan-500/20 bg-cyan-950/10">
               <div className="flex items-center justify-between text-xs text-cyan-400/50 font-mono">
                 <div className="flex items-center gap-4">

@@ -89,10 +89,10 @@ export default function LoginPage() {
                     NEXUS ACADÉMIQUE
                   </span>
                 </motion.div>
-                <div className="flex items-center gap-2 text-xs text-cyan-400/70 font-mono">
+                {/* <div className="flex items-center gap-2 text-xs text-cyan-400/70 font-mono">
                   <Radio className="h-3 w-3" />
                   <span>CONNEXION SÉCURISÉE</span>
-                </div>
+                </div> */}
               </div>
               
               <div className="mt-2">
@@ -181,19 +181,19 @@ export default function LoginPage() {
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-cyan-500/20"></div>
                   </div>
-                  <div className="relative flex justify-center text-xs">
+                  {/* <div className="relative flex justify-center text-xs">
                     <span className="px-2 bg-transparent text-cyan-400/50 font-mono">OU</span>
-                  </div>
+                  </div> */}
                 </div>
 
-                <button
+                {/* <button
                   type="button"
                   className="w-full flex items-center justify-center gap-3 p-3 rounded-xl border border-cyan-500/30 bg-cyan-950/20 text-cyan-100 hover:border-cyan-400 hover:bg-cyan-500/10 transition-all duration-300"
                   onClick={() => toast("Connexion biométrique bientôt disponible")}
                 >
                   <Fingerprint className="h-5 w-5" />
                   <span className="text-sm font-medium">Connexion biométrique</span>
-                </button>
+                </button> */}
               </div>
 
               {/* Submit Button */}
@@ -238,13 +238,13 @@ export default function LoginPage() {
                 </div>
 
                 {/* Demo Credentials */}
-                <div className="mt-4 p-3 rounded-xl bg-cyan-500/5 border border-cyan-500/20">
+                {/* <div className="mt-4 p-3 rounded-xl bg-cyan-500/5 border border-cyan-500/20">
                   <p className="text-xs text-cyan-400/70 text-center font-mono mb-2">COMPTE DE DÉMONSTRATION</p>
                   <div className="flex justify-center gap-4 text-xs text-slate-400">
                     <span>Email: demo@nexus.edu</span>
                     <span>Mot de passe: demo123</span>
                   </div>
-                </div>
+                </div> */}
               </div>
             </form>
 
