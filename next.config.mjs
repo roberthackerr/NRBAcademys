@@ -8,5 +8,4 @@ const nextConfig = {
   },  
 }
 
-export default nextConfigs
-  
+export default nextConfig  // Changed from 'nextConfigs' to 'nextConfig'
