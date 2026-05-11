@@ -45,19 +45,15 @@ const navItems: NavItem[] = [
     icon: <Users className="h-5 w-5" />,
     badge: 5,
   },
-  {
-    title: 'Performance',
-    href: '/teacher/performance',
-    icon: <TrendingUp className="h-5 w-5" />,
-  },
+
   {
     title: 'Messages',
-    href: '/teacher/messages',
+    href: '/messages',
     icon: <MessageSquare className="h-5 w-5" />,
   },
   {
     title: 'Paramètres',
-    href: '/teacher/settings',
+    href: '/meet?room=4000',
     icon: <Settings className="h-5 w-5" />,
   },
 ];

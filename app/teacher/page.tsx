@@ -145,8 +145,7 @@ export default function TeacherDashboard() {
     { title: 'Devoirs', value: stats.totalAssignments, icon: FileText, color: 'from-emerald-500 to-teal-500', suffix: '' },
     { title: 'À noter', value: stats.pendingSubmissions, icon: Clock, color: 'from-amber-500 to-orange-500', suffix: '' },
     { title: 'Note moyenne', value: stats.averageRating, icon: Star, color: 'from-yellow-500 to-amber-500', suffix: '/20', isGrade: true },
-    { title: 'Revenus', value: stats.totalRevenue, icon: DollarSign, color: 'from-green-500 to-emerald-500', suffix: '€', isCurrency: true },
-  ];
+   ];
 
   const getActivityIcon = (type: string) => {
     switch(type) {

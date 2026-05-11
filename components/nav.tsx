@@ -29,7 +29,9 @@ import {
   Newspaper,
   Calendar,
   FileText,
-  Map
+  Map,
+  BotIcon,
+  School
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -118,7 +120,9 @@ export function Navbar({ isAuthenticated: propIsAuthenticated, user: propUser }:
     { href: "/", label: "Accueil", icon: <Home className="h-4 w-4" /> },
     { href: "/courses", label: "Cours", icon: <BookOpen className="h-4 w-4" /> },
     { href: "/universities", label: "Universités", icon: <Building2 className="h-4 w-4" /> },
-    { href: "/community", label: "Communauté", icon: <Users className="h-4 w-4" /> },
+    { href: "/dashboard/university", label: "Mon Universités", icon: <School className="h-4 w-4" /> },
+    { href: "/learn-ai", label: "Nexus AI", icon: <BotIcon className="h-4 w-4" /> },
+    
   ]
 
   const getRoleBasedLinks = () => {
@@ -154,6 +158,7 @@ export function Navbar({ isAuthenticated: propIsAuthenticated, user: propUser }:
           { href: "/student", label: "Tableau de bord", icon: <LayoutDashboard className="h-4 w-4" /> },
           { href: "/student/courses", label: "Mes cours", icon: <BookOpen className="h-4 w-4" /> },
           { href: "/student/progress", label: "Ma progression", icon: <Award className="h-4 w-4" /> },
+               { href: "/universities/map", label: "Map", icon: <Map className="h-4"/> },
           { href: "/student/assignments", label: "Devoirs", icon: <FileText className="h-4 w-4" /> },
           { href: "/dashboard/university", label: "Mon université", icon: <Building2 className="h-4 w-4" /> },
         ]

@@ -1,4 +1,5 @@
-// app/universities/map/page.tsx - Version corrigée (sidebar toujours visible)
+// app/universities/map/page.tsx - Version avec données réelles MongoDB
+
 "use client"
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -13,7 +14,7 @@ import {
   Star, Heart, Share2, Info, X, Menu, ChevronRight,
   Globe, Map, Satellite, Locate, ZoomIn, ZoomOut,
   Volume2, VolumeX, Radio, Network, Cpu, Database,
-  Loader2, AlertCircle, TrendingUp, Trophy
+  Loader2, AlertCircle, TrendingUp, Trophy, ChevronLeft
 } from 'lucide-react';
 import { Navbar } from '@/components/nav';
 import { toast } from 'sonner';
@@ -28,43 +29,80 @@ declare global {
 interface University {
   _id: string;
   name: string;
-  name_en: string;
+  name_en?: string;
   location: string;
   country: string;
   continent: string;
   lat?: number;
   lng?: number;
-  logo?: string;
-  studentsCount: number;
+  logo?: string | null;
+  studentsCount?: number;
   programsCount: number;
-  partnerships: number;
+  partnerships?: number;
   ranking?: number;
   rating?: number;
   description?: string;
   website?: string;
-  type: 'public' | 'private';
+  email?: string;
+  phone?: string;
+  address?: string;
+  postalCode?: string;
+  status?: string;
+  type?: 'public' | 'private';
 }
 
-const universitiesLocationData: University[] = [
+// Données réelles depuis MongoDB
+const actualUniversitiesData: University[] = [
   {
-    _id: "1",
+    _id: "69fa3b1c6f189b378f7cc4db",
     name: "Université d'Antananarivo",
-    name_en: "University of Antananarivo",
+    name_en: "",
     location: "Antananarivo",
     country: "Madagascar",
     continent: "Afrique",
     lat: -18.8792,
     lng: 47.5079,
-    studentsCount: 25000,
-    programsCount: 120,
+  //  studentsCount: 25000,
+    programsCount: 4,
     partnerships: 45,
     ranking: 8,
     rating: 4.5,
     type: "public",
-    website: "www.univ-antananarivo.mg"
+    website: "",
+    email: "vohitsaina@univ-antananarivo.mg",
+    phone: "+261 20 22 326 39",
+    address: "Antananarivo",
+    postalCode: "101",
+    status: "active"
   },
   {
-    _id: "2",
+    _id: "69fa43af93f2e1375d272220",
+    name: "Université de Vakinankaratra",
+    name_en: "",
+    location: "Antsirabe",
+    country: "Madagascar",
+    continent: "Afrique",
+    lat: -19.8667,
+    lng: 47.0333,
+  //  studentsCount: 8000,
+    programsCount: 4,
+    partnerships: 15,
+    ranking: 20,
+    rating: 3.8,
+    type: "public",
+    website: "",
+    email: "univ-vakinankaratra@gmail.com",
+    phone: "",
+    address: "Antsirabe",
+    postalCode: "110",
+    status: "active"
+  }
+];
+
+// Données supplémentaires pour la démonstration (à remplacer par vos données réelles)
+const additionalUniversities: University[] = [
+  {
+    _id: "univ_fianarantsoa",
     name: "Université de Fianarantsoa",
     name_en: "University of Fianarantsoa",
     location: "Fianarantsoa",
@@ -72,16 +110,16 @@ const universitiesLocationData: University[] = [
     continent: "Afrique",
     lat: -21.4544,
     lng: 47.0855,
-    studentsCount: 15000,
+  //  studentsCount: 15000,
     programsCount: 80,
     partnerships: 25,
     ranking: 12,
     rating: 4.2,
     type: "public",
-    website: "www.univ-fianar.mg"
+    email: "contact@univ-fianar.mg"
   },
   {
-    _id: "3",
+    _id: "univ_toamasina",
     name: "Université de Toamasina",
     name_en: "University of Toamasina",
     location: "Toamasina",
@@ -89,16 +127,16 @@ const universitiesLocationData: University[] = [
     continent: "Afrique",
     lat: -18.1445,
     lng: 49.3958,
-    studentsCount: 12000,
+  //  studentsCount: 12000,
     programsCount: 65,
     partnerships: 20,
     ranking: 15,
     rating: 4.0,
     type: "public",
-    website: "www.univ-toamasina.mg"
+    email: "contact@univ-toamasina.mg"
   },
   {
-    _id: "4",
+    _id: "univ_mahajanga",
     name: "Université de Mahajanga",
     name_en: "University of Mahajanga",
     location: "Mahajanga",
@@ -106,16 +144,16 @@ const universitiesLocationData: University[] = [
     continent: "Afrique",
     lat: -15.7167,
     lng: 46.3167,
-    studentsCount: 10000,
+  //  studentsCount: 10000,
     programsCount: 55,
     partnerships: 18,
     ranking: 18,
     rating: 3.9,
     type: "public",
-    website: "www.univ-mahajanga.mg"
+    email: "contact@univ-mahajanga.mg"
   },
   {
-    _id: "5",
+    _id: "univ_paris_sorbonne",
     name: "Université Sorbonne Paris Nord",
     name_en: "Sorbonne Paris North University",
     location: "Paris",
@@ -129,10 +167,10 @@ const universitiesLocationData: University[] = [
     ranking: 3,
     rating: 4.8,
     type: "public",
-    website: "www.univ-sorbonne.fr"
+    email: "contact@sorbonne.fr"
   },
   {
-    _id: "6",
+    _id: "univ_ubc",
     name: "University of British Columbia",
     name_en: "University of British Columbia",
     location: "Vancouver",
@@ -145,15 +183,14 @@ const universitiesLocationData: University[] = [
     partnerships: 180,
     ranking: 2,
     rating: 4.9,
-    type: "public",
-    website: "www.ubc.ca"
+    type: "public"
   },
   {
-    _id: "7",
+    _id: "univ_capetown",
     name: "University of Cape Town",
     name_en: "University of Cape Town",
     location: "Cape Town",
-    country: "South Africa",
+    country: "Afrique du Sud",
     continent: "Afrique",
     lat: -33.9575,
     lng: 18.4606,
@@ -162,11 +199,10 @@ const universitiesLocationData: University[] = [
     partnerships: 90,
     ranking: 5,
     rating: 4.6,
-    type: "public",
-    website: "www.uct.ac.za"
+    type: "public"
   },
   {
-    _id: "8",
+    _id: "univ_nus",
     name: "National University of Singapore",
     name_en: "National University of Singapore",
     location: "Singapore",
@@ -179,15 +215,14 @@ const universitiesLocationData: University[] = [
     partnerships: 150,
     ranking: 1,
     rating: 4.9,
-    type: "public",
-    website: "www.nus.edu.sg"
+    type: "public"
   },
   {
-    _id: "9",
+    _id: "univ_oxford",
     name: "University of Oxford",
     name_en: "University of Oxford",
     location: "Oxford",
-    country: "United Kingdom",
+    country: "Royaume-Uni",
     continent: "Europe",
     lat: 51.7548,
     lng: -1.2544,
@@ -196,11 +231,10 @@ const universitiesLocationData: University[] = [
     partnerships: 200,
     ranking: 4,
     rating: 4.9,
-    type: "public",
-    website: "www.ox.ac.uk"
+    type: "public"
   },
   {
-    _id: "10",
+    _id: "univ_harvard",
     name: "Harvard University",
     name_en: "Harvard University",
     location: "Cambridge",
@@ -213,14 +247,14 @@ const universitiesLocationData: University[] = [
     partnerships: 220,
     ranking: 1,
     rating: 5.0,
-    type: "private",
-    website: "www.harvard.edu"
+    type: "private"
   }
 ];
 
+const allUniversities = [...actualUniversitiesData, ...additionalUniversities];
+
 // Positions fixes pour éviter les problèmes d'hydratation
 const FIXED_POSITIONS = Array.from({ length: 50 }, (_, i) => {
-  // Utiliser des valeurs déterministes basées sur l'index
   const seed1 = ((i * 7 + 13) % 97) / 97;
   const seed2 = ((i * 11 + 29) % 89) / 89;
   const seed3 = ((i * 3 + 5) % 83) / 83;
@@ -242,7 +276,7 @@ export default function UniversitiesMapPage() {
   const [mapLayer, setMapLayer] = useState<'streets' | 'satellite' | 'dark'>('streets');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredUniversities, setFilteredUniversities] = useState<University[]>(universitiesLocationData);
+  const [filteredUniversities, setFilteredUniversities] = useState<University[]>(allUniversities);
   const [hoveredUniversity, setHoveredUniversity] = useState<string | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -251,12 +285,12 @@ export default function UniversitiesMapPage() {
   const [mounted, setMounted] = useState(false);
   const [selectedContinent, setSelectedContinent] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'ranking' | 'students' | 'rating'>('ranking');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
-  // ✅ FIX: ref pour les universités filtrées — évite la dépendance circulaire
-  const filteredRef = useRef<University[]>(universitiesLocationData);
+  const filteredRef = useRef<University[]>(allUniversities);
 
   useEffect(() => {
     setMounted(true);
@@ -287,7 +321,7 @@ export default function UniversitiesMapPage() {
     loadLeaflet();
   }, []);
 
-  // Initialisation de la carte — sans mapLayer dans les deps
+  // Initialisation de la carte
   useEffect(() => {
     if (!mapLoaded || !window.L || !mapRef.current || mapInstanceRef.current) return;
 
@@ -320,9 +354,8 @@ export default function UniversitiesMapPage() {
       console.error('Error initializing map:', error);
       setMapError("Erreur lors de l'initialisation de la carte");
     }
-  }, [mapLoaded]); // ✅ FIX: mapLayer retiré des deps ici
+  }, [mapLoaded]);
 
-  // ✅ FIX: addMarkersToMap lit depuis filteredRef, pas depuis le state
   const addMarkersToMap = useCallback(() => {
     if (!mapInstanceRef.current || !window.L || !isMapReady) return;
 
@@ -339,7 +372,6 @@ export default function UniversitiesMapPage() {
         popupAnchor: [0, -20]
       });
 
-      // ✅ FIX: lecture depuis filteredRef.current au lieu du state
       filteredRef.current.forEach(uni => {
         if (uni.lat && uni.lng) {
           const marker = L.marker([uni.lat, uni.lng], { icon: customIcon })
@@ -351,7 +383,7 @@ export default function UniversitiesMapPage() {
                   <span class="popup-country">${uni.country}</span>
                 </div>
                 <div class="popup-stats">
-                  <span>🎓 ${uni.studentsCount.toLocaleString()} étudiants</span>
+                  <span>🎓 ${uni.studentsCount?.toLocaleString()} étudiants</span>
                   <span>📚 ${uni.programsCount} programmes</span>
                 </div>
                 <div class="popup-rating">
@@ -371,12 +403,13 @@ export default function UniversitiesMapPage() {
     } catch (error) {
       console.error('Error adding markers:', error);
     }
-  }, [isMapReady]); // ✅ FIX: filteredUniversities retiré des deps
+  }, [isMapReady]);
 
-  // ✅ FIX: Filtrage — met à jour ref ET state, puis appelle addMarkersToMap directement
+  // Filtrage
   useEffect(() => {
-    let filtered = universitiesLocationData.filter(uni =>
+    let filtered = allUniversities.filter(uni =>
       uni.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (uni.name_en && uni.name_en.toLowerCase().includes(searchQuery.toLowerCase())) ||
       uni.country.toLowerCase().includes(searchQuery.toLowerCase()) ||
       uni.continent.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -387,20 +420,17 @@ export default function UniversitiesMapPage() {
 
     filtered = [...filtered].sort((a, b) => {
       if (sortBy === 'ranking') return (a.ranking || 999) - (b.ranking || 999);
-      if (sortBy === 'students') return b.studentsCount - a.studentsCount;
+      if (sortBy === 'students') return b.studentsCount! - a.studentsCount!;
       if (sortBy === 'rating') return (b.rating || 0) - (a.rating || 0);
       return 0;
     });
 
-    // ✅ FIX: ref d'abord (synchrone), puis state pour la sidebar
     filteredRef.current = filtered;
     setFilteredUniversities(filtered);
 
-    // ✅ FIX: appel direct plutôt que via dépendance d'effet
     if (isMapReady) addMarkersToMap();
   }, [searchQuery, selectedContinent, sortBy, isMapReady, addMarkersToMap]);
 
-  // ✅ FIX: Ajouter les marqueurs uniquement quand la carte est prête (premier rendu)
   useEffect(() => {
     if (isMapReady) addMarkersToMap();
   }, [isMapReady, addMarkersToMap]);
@@ -422,7 +452,6 @@ export default function UniversitiesMapPage() {
         satellite: '&copy; <a href="https://www.esri.com/">Esri</a>'
       };
 
-      // ✅ FIX: ne retirer que les TileLayer, pas les marqueurs
       mapInstanceRef.current.eachLayer((layer: any) => {
         if (layer instanceof L.TileLayer) {
           mapInstanceRef.current.removeLayer(layer);
@@ -436,7 +465,6 @@ export default function UniversitiesMapPage() {
         minZoom: 2
       }).addTo(mapInstanceRef.current);
 
-      // ✅ FIX: remettre les marqueurs par-dessus la nouvelle tuile
       addMarkersToMap();
     } catch (error) {
       console.error('Error changing map layer:', error);
@@ -476,7 +504,7 @@ export default function UniversitiesMapPage() {
     }
   };
 
-  const continents = ['all', ...new Set(universitiesLocationData.map(u => u.continent))];
+  const continents = ['all', ...new Set(allUniversities.map(u => u.continent))];
 
   if (mapError) {
     return (
@@ -523,16 +551,18 @@ export default function UniversitiesMapPage() {
         </div>
       )}
 
-      {/* Header avec recherche */}
+      {/* Header */}
       <div className="fixed top-16 left-0 right-0 z-30 pointer-events-none">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col gap-4 pointer-events-auto">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="pointer-events-auto">
+            <div className="flex justify-between items-center">
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
                   Atlas Universitaire
                 </h1>
-                <p className="text-slate-400 text-sm">Explorez les universités du monde entier</p>
+                <p className="text-slate-400 text-sm">
+                  {filteredUniversities.length} universités répertoriées
+                </p>
               </div>
               <div className="flex items-center gap-3">
                 <div className="bg-black/50 backdrop-blur-xl rounded-xl border border-cyan-500/30 p-1 flex gap-1">
@@ -581,209 +611,225 @@ export default function UniversitiesMapPage() {
                 </button>
               </div>
             </div>
-
-            {/* Barre de recherche */}
-            <div className="relative max-w-md">
-              <div className="relative bg-black/80 backdrop-blur-xl rounded-2xl border border-cyan-500/30 p-1 flex items-center">
-                <Search className="absolute left-4 h-4 w-4 text-cyan-400" />
-                <input
-                  type="text"
-                  placeholder="Rechercher une université, un pays..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-transparent text-white placeholder:text-slate-500 focus:outline-none rounded-xl text-sm"
-                />
-                <div className="text-xs text-cyan-400 px-2">{filteredUniversities.length} résultats</div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
 
-      {/* Sidebar */}
-      <div className="relative z-20">
-        <AnimatePresence mode="wait">
-          {showSidebar && (
+      {/* Layout principal: Sidebar + Carte */}
+      <div className="relative pt-32 z-10">
+        <div className="container mx-auto px-4">
+          <div className="flex gap-4">
+            {/* Sidebar - Liste des universités */}
             <motion.div
-              key="sidebar"
-              initial={{ x: -320, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -320, opacity: 0 }}
+              initial={false}
+              animate={{
+                width: isSidebarCollapsed ? 'auto' : '400px',
+                minWidth: isSidebarCollapsed ? 'auto' : '400px'
+              }}
               transition={{ type: "spring", damping: 20 }}
-              className="fixed left-4 top-44 w-96 max-h-[calc(100vh-180px)] bg-black/80 backdrop-blur-2xl rounded-2xl border border-cyan-500/30 overflow-hidden flex flex-col shadow-2xl"
-              style={{ zIndex: 30 }}
+              className="relative"
             >
-              {/* Header Sidebar */}
-              <div className="p-4 border-b border-white/10 bg-black/50 backdrop-blur-sm flex-shrink-0">
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="font-semibold text-white flex items-center gap-2">
-                    <Building2 className="h-4 w-4 text-cyan-400" />
-                    Universités ({filteredUniversities.length})
-                  </h3>
-                  <button
-                    onClick={() => setShowSidebar(false)}
-                    className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
-                  >
-                    <X className="h-4 w-4 text-slate-400" />
-                  </button>
-                </div>
-
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs text-slate-400 mb-1 block">Continent</label>
-                    <div className="flex flex-wrap gap-1">
-                      {continents.map(continent => (
-                        <button
-                          key={continent}
-                          onClick={() => setSelectedContinent(continent)}
-                          className={cn(
-                            "px-2 py-1 rounded-lg text-xs transition-all",
-                            selectedContinent === continent
-                              ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/50"
-                              : "bg-white/5 text-slate-400 hover:bg-white/10"
-                          )}
-                        >
-                          {continent === 'all' ? '🌍 Tous' : continent}
-                        </button>
-                      ))}
-                    </div>
+              <div className="bg-black/80 backdrop-blur-2xl rounded-2xl border border-cyan-500/30 overflow-hidden flex flex-col shadow-2xl h-[calc(100vh-140px)]">
+                {/* Header Sidebar */}
+                <div className="p-4 border-b border-white/10 bg-black/50 backdrop-blur-sm flex-shrink-0">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-semibold text-white flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-cyan-400" />
+                      {!isSidebarCollapsed && `Universités (${filteredUniversities.length})`}
+                    </h3>
+                    <button
+                      onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                      className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                    >
+                      {isSidebarCollapsed ? <ChevronRight className="h-4 w-4 text-cyan-400" /> : <ChevronLeft className="h-4 w-4 text-cyan-400" />}
+                    </button>
                   </div>
 
-                  <div>
-                    <label className="text-xs text-slate-400 mb-1 block">Trier par</label>
-                    <div className="flex gap-1">
-                      {[
-                        { value: 'ranking', label: '🏆 Classement' },
-                        { value: 'students', label: '👥 Étudiants' },
-                        { value: 'rating', label: '⭐ Note' }
-                      ].map(option => (
-                        <button
-                          key={option.value}
-                          onClick={() => setSortBy(option.value as any)}
-                          className={cn(
-                            "flex-1 px-2 py-1 rounded-lg text-xs transition-all flex items-center justify-center gap-1",
-                            sortBy === option.value
-                              ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/50"
-                              : "bg-white/5 text-slate-400 hover:bg-white/10"
-                          )}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Liste des universités */}
-              <div className="overflow-y-auto flex-1">
-                {filteredUniversities.length === 0 ? (
-                  <div className="text-center py-12">
-                    <div className="text-slate-500 text-sm">Aucune université trouvée</div>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-white/10">
-                    {filteredUniversities.map((uni, idx) => (
-                      <motion.div
-                        key={uni._id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 0.02 }}
-                        onClick={() => centerOnUniversity(uni)}
-                        onMouseEnter={() => setHoveredUniversity(uni._id)}
-                        onMouseLeave={() => setHoveredUniversity(null)}
-                        className={cn(
-                          "p-4 cursor-pointer transition-all duration-300 relative overflow-hidden",
-                          selectedUniversity?._id === uni._id
-                            ? "bg-gradient-to-r from-cyan-500/20 to-violet-500/20 border-l-4 border-l-cyan-500"
-                            : "hover:bg-white/5",
-                          hoveredUniversity === uni._id && "bg-white/5"
-                        )}
-                      >
-                        <div className="flex items-start gap-3 relative z-10">
-                          <div className={cn(
-                            "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 relative",
-                            uni.ranking && uni.ranking <= 3
-                              ? "bg-gradient-to-br from-yellow-500 to-orange-600"
-                              : "bg-gradient-to-br from-cyan-500 to-violet-600"
-                          )}>
-                            {uni.ranking && uni.ranking <= 3 ? (
-                              <Trophy className="h-6 w-6 text-white" />
-                            ) : (
-                              <GraduationCap className="h-6 w-6 text-white" />
-                            )}
-                            {uni.ranking && uni.ranking <= 10 && (
-                              <div className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white">
-                                #{uni.ranking}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-2">
-                              <div>
-                                <h4 className="font-semibold text-white text-sm truncate">{uni.name}</h4>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <span className="text-xs text-slate-400 flex items-center gap-1">
-                                    <MapPin className="h-3 w-3" />
-                                    {uni.location}
-                                  </span>
-                                  <span className="text-xs text-cyan-400">{uni.country}</span>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-0.5">
-                                <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
-                                <span className="text-xs text-slate-300">{uni.rating}</span>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-3 mt-2 text-xs">
-                              <span className="text-slate-500 flex items-center gap-1">
-                                <Users className="h-3 w-3" />
-                                {uni.studentsCount.toLocaleString()}
-                              </span>
-                              <span className="text-slate-500 flex items-center gap-1">
-                                <BookOpen className="h-3 w-3" />
-                                {uni.programsCount}
-                              </span>
-                            </div>
-                          </div>
-
-                          <ChevronRight className="h-4 w-4 text-slate-500 flex-shrink-0" />
+                  {!isSidebarCollapsed && (
+                    <div className="space-y-3">
+                      {/* Barre de recherche */}
+                      <div className="relative">
+                        <div className="relative bg-black/80 backdrop-blur-xl rounded-2xl border border-cyan-500/30 p-1 flex items-center">
+                          <Search className="absolute left-3 h-4 w-4 text-cyan-400" />
+                          <input
+                            type="text"
+                            placeholder="Rechercher une université..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-9 pr-3 py-2 bg-transparent text-white placeholder:text-slate-500 focus:outline-none rounded-xl text-sm"
+                          />
                         </div>
-                      </motion.div>
-                    ))}
-                  </div>
+                      </div>
+
+                      <div>
+                        <label className="text-xs text-slate-400 mb-1 block">Filtrer par continent</label>
+                        <div className="flex flex-wrap gap-1">
+                          {continents.map(continent => (
+                            <button
+                              key={continent}
+                              onClick={() => setSelectedContinent(continent)}
+                              className={cn(
+                                "px-2 py-1 rounded-lg text-xs transition-all",
+                                selectedContinent === continent
+                                  ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/50"
+                                  : "bg-white/5 text-slate-400 hover:bg-white/10"
+                              )}
+                            >
+                              {continent === 'all' ? '🌍 Tous' : continent}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-xs text-slate-400 mb-1 block">Trier par</label>
+                        <div className="flex gap-1">
+                          {[
+                            { value: 'ranking', label: '🏆 Classement' },
+                            { value: 'students', label: '👥 Étudiants' },
+                            { value: 'rating', label: '⭐ Note' }
+                          ].map(option => (
+                            <button
+                              key={option.value}
+                              onClick={() => setSortBy(option.value as any)}
+                              className={cn(
+                                "flex-1 px-2 py-1 rounded-lg text-xs transition-all flex items-center justify-center gap-1",
+                                sortBy === option.value
+                                  ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/50"
+                                  : "bg-white/5 text-slate-400 hover:bg-white/10"
+                              )}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Liste des universités - seulement visible quand non replié */}
+                {!isSidebarCollapsed && (
+                  <>
+                    <div className="overflow-y-auto flex-1">
+                      {filteredUniversities.length === 0 ? (
+                        <div className="text-center py-12">
+                          <div className="text-slate-500 text-sm">Aucune université trouvée</div>
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-white/10">
+                          {filteredUniversities.map((uni, idx) => (
+                            <motion.div
+                              key={uni._id}
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: idx * 0.02 }}
+                              onClick={() => centerOnUniversity(uni)}
+                              onMouseEnter={() => setHoveredUniversity(uni._id)}
+                              onMouseLeave={() => setHoveredUniversity(null)}
+                              className={cn(
+                                "p-4 cursor-pointer transition-all duration-300 relative overflow-hidden",
+                                selectedUniversity?._id === uni._id
+                                  ? "bg-gradient-to-r from-cyan-500/20 to-violet-500/20 border-l-4 border-l-cyan-500"
+                                  : "hover:bg-white/5",
+                                hoveredUniversity === uni._id && "bg-white/5"
+                              )}
+                            >
+                              <div className="flex items-start gap-3 relative z-10">
+                                <div className={cn(
+                                  "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 relative",
+                                  uni.ranking && uni.ranking <= 3
+                                    ? "bg-gradient-to-br from-yellow-500 to-orange-600"
+                                    : "bg-gradient-to-br from-cyan-500 to-violet-600"
+                                )}>
+                                  {uni.ranking && uni.ranking <= 3 ? (
+                                    <Trophy className="h-6 w-6 text-white" />
+                                  ) : (
+                                    <GraduationCap className="h-6 w-6 text-white" />
+                                  )}
+                                  {uni.ranking && uni.ranking <= 10 && (
+                                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white">
+                                      #{uni.ranking}
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div>
+                                      <h4 className="font-semibold text-white text-sm truncate">{uni.name}</h4>
+                                      <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-xs text-slate-400 flex items-center gap-1">
+                                          <MapPin className="h-3 w-3" />
+                                          {uni.location}
+                                        </span>
+                                        <span className="text-xs text-cyan-400">{uni.country}</span>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-0.5">
+                                      <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+                                      <span className="text-xs text-slate-300">{uni.rating?.toFixed(1)}</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center gap-3 mt-2 text-xs">
+                                    <span className="text-slate-500 flex items-center gap-1">
+                                      <Users className="h-3 w-3" />
+                                      {uni.studentsCount?.toLocaleString()}
+                                    </span>
+                                    <span className="text-slate-500 flex items-center gap-1">
+                                      <BookOpen className="h-3 w-3" />
+                                      {uni.programsCount}
+                                    </span>
+                                  </div>
+
+                                  {uni.email && (
+                                    <div className="mt-1 text-xs text-slate-600 truncate">
+                                      {uni.email}
+                                    </div>
+                                  )}
+                                </div>
+
+                                <ChevronRight className="h-4 w-4 text-slate-500 flex-shrink-0" />
+                              </div>
+                            </motion.div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Footer Sidebar */}
+                    <div className="p-3 border-t border-white/10 bg-black/50 backdrop-blur-sm flex-shrink-0">
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse" />
+                          <span className="text-slate-400">{filteredUniversities.length} universités</span>
+                        </div>
+                        <div className="text-slate-500">
+                          {filteredUniversities.reduce((sum, u) => sum + u.studentsCount, 0).toLocaleString()} étudiants
+                        </div>
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
+            </motion.div>
 
-              {/* Footer Sidebar */}
-              <div className="p-3 border-t border-white/10 bg-black/50 backdrop-blur-sm flex-shrink-0">
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse" />
-                    <span className="text-slate-400">{filteredUniversities.length} universités</span>
-                  </div>
-                  <div className="text-slate-500">
-                    {filteredUniversities.reduce((sum, u) => sum + u.studentsCount, 0).toLocaleString()} étudiants
+            {/* Carte - prend tout l'espace restant */}
+            <div className="flex-1 relative h-[calc(100vh-140px)] rounded-2xl overflow-hidden border border-cyan-500/30 shadow-2xl">
+              <div ref={mapRef} className="w-full h-full" />
+
+              {(!mapLoaded || !isMapReady) && !mapError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
+                  <div className="text-center">
+                    <Loader2 className="h-8 w-8 text-cyan-400 animate-spin mx-auto mb-4" />
+                    <p className="text-slate-400">Chargement de la carte...</p>
                   </div>
                 </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Bouton pour rouvrir la sidebar */}
-        {!showSidebar && (
-          <motion.button
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            onClick={() => setShowSidebar(true)}
-            className="fixed left-4 top-44 z-30 p-3 bg-black/80 backdrop-blur-xl rounded-xl border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 transition-all shadow-lg"
-          >
-            <Menu className="h-5 w-5" />
-          </motion.button>
-        )}
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Panneau d'info université sélectionnée */}
@@ -794,7 +840,7 @@ export default function UniversitiesMapPage() {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 320, opacity: 0 }}
             transition={{ type: "spring", damping: 20 }}
-            className="fixed right-4 top-44 z-30 w-96 max-h-[calc(100vh-180px)] bg-black/80 backdrop-blur-2xl rounded-2xl border border-cyan-500/30 overflow-hidden flex flex-col shadow-2xl"
+            className="fixed right-4 top-32 z-30 w-96 max-h-[calc(100vh-100px)] bg-black/80 backdrop-blur-2xl rounded-2xl border border-cyan-500/30 overflow-hidden flex flex-col shadow-2xl"
           >
             <div className="relative h-32 bg-gradient-to-r from-cyan-600/30 to-violet-600/30">
               <div className="absolute inset-0 bg-black/40" />
@@ -831,16 +877,18 @@ export default function UniversitiesMapPage() {
                     </span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-cyan-400">#{selectedUniversity.ranking}</div>
-                  <div className="text-[10px] text-slate-500">Classement</div>
-                </div>
+                {selectedUniversity.ranking && (
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-cyan-400">#{selectedUniversity.ranking}</div>
+                    <div className="text-[10px] text-slate-500">Classement</div>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-3 gap-3 mt-4">
                 <div className="text-center p-2 rounded-xl bg-white/5">
                   <Users className="h-4 w-4 text-cyan-400 mx-auto mb-1" />
-                  <p className="text-white font-bold text-sm">{selectedUniversity.studentsCount.toLocaleString()}</p>
+                  <p className="text-white font-bold text-sm">{selectedUniversity.studentsCount?.toLocaleString()}</p>
                   <p className="text-[10px] text-slate-500">Étudiants</p>
                 </div>
                 <div className="text-center p-2 rounded-xl bg-white/5">
@@ -850,10 +898,24 @@ export default function UniversitiesMapPage() {
                 </div>
                 <div className="text-center p-2 rounded-xl bg-white/5">
                   <Award className="h-4 w-4 text-cyan-400 mx-auto mb-1" />
-                  <p className="text-white font-bold text-sm">{selectedUniversity.partnerships}</p>
+                  <p className="text-white font-bold text-sm">{selectedUniversity.partnerships || 0}</p>
                   <p className="text-[10px] text-slate-500">Partenariats</p>
                 </div>
               </div>
+
+              {selectedUniversity.email && (
+                <div className="mt-3 p-2 rounded-xl bg-white/5">
+                  <p className="text-xs text-slate-400">Email</p>
+                  <p className="text-sm text-white truncate">{selectedUniversity.email}</p>
+                </div>
+              )}
+
+              {selectedUniversity.phone && (
+                <div className="mt-2 p-2 rounded-xl bg-white/5">
+                  <p className="text-xs text-slate-400">Téléphone</p>
+                  <p className="text-sm text-white">{selectedUniversity.phone}</p>
+                </div>
+              )}
 
               <div className="mt-4 flex gap-2">
                 <button
@@ -874,20 +936,6 @@ export default function UniversitiesMapPage() {
         )}
       </AnimatePresence>
 
-      {/* Carte */}
-      <div className="relative w-full h-screen">
-        <div ref={mapRef} className="w-full h-full" />
-
-        {(!mapLoaded || !isMapReady) && !mapError && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
-            <div className="text-center">
-              <Loader2 className="h-8 w-8 text-cyan-400 animate-spin mx-auto mb-4" />
-              <p className="text-slate-400">Chargement de la carte...</p>
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* Légende */}
       <div className="fixed bottom-4 left-4 z-20 bg-black/50 backdrop-blur-xl rounded-xl border border-cyan-500/30 p-3">
         <div className="flex items-center gap-4 text-xs">
@@ -896,12 +944,12 @@ export default function UniversitiesMapPage() {
             <span className="text-slate-400">Université</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-emerald-500 rounded-full" />
-            <span className="text-slate-400">Top 10</span>
+            <div className="w-2 h-2 bg-yellow-500 rounded-full" />
+            <span className="text-slate-400">Top 3</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-amber-500 rounded-full" />
-            <span className="text-slate-400">Partenariat</span>
+            <div className="w-2 h-2 bg-emerald-500 rounded-full" />
+            <span className="text-slate-400">Top 10</span>
           </div>
         </div>
       </div>

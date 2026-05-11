@@ -37,11 +37,7 @@ const navItems: NavItem[] = [
     href: '/student/assignments',
     icon: <FileText className="h-5 w-5" />,
   },
-  {
-    title: 'Progression',
-    href: '/student/progress',
-    icon: <TrendingUp className="h-5 w-5" />,
-  },
+
   {
     title: 'Certificats',
     href: '/student/certificates',
@@ -49,14 +45,10 @@ const navItems: NavItem[] = [
   },
   {
     title: 'Messages',
-    href: '/student/messages',
+    href: '/messages',
     icon: <MessageSquare className="h-5 w-5" />,
   },
-  {
-    title: 'Paramètres',
-    href: '/student/settings',
-    icon: <Settings className="h-5 w-5" />,
-  },
+
 ];
 
 export default function StudentLayout({
